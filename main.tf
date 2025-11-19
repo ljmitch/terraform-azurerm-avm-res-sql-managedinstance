@@ -60,6 +60,12 @@ resource "azurerm_mssql_managed_instance_active_directory_administrator" "this" 
       update = timeouts.value.update
     }
   }
+
+  # Must wait for a managed identity to be applied to the MI before setting AD admin. Will still only work with pre-created UAMI's with Directory Readers role assigned in a single pass.
+  # https://github.com/Azure/terraform-azurerm-avm-res-sql-managedinstance/issues/53
+  depends_on = [
+    azapi_resource_action.sql_managed_instance_patch_identities
+  ]
 }
 
 # https://learn.microsoft.com/en-us/rest/api/sql/managed-server-security-alert-policies/create-or-update?view=rest-sql-2023-08-01-preview&tabs=HTTP
@@ -94,6 +100,7 @@ resource "azapi_resource_action" "mssql_managed_instance_security_alert_policy" 
 
   depends_on = [
     azurerm_mssql_managed_instance_active_directory_administrator.this,
+    azurerm_mssql_managed_instance_transparent_data_encryption.this,
   ]
 }
 
@@ -114,10 +121,6 @@ resource "azurerm_mssql_managed_instance_transparent_data_encryption" "this" {
       update = timeouts.value.update
     }
   }
-
-  depends_on = [
-    azapi_resource_action.mssql_managed_instance_security_alert_policy,
-  ]
 }
 
 # API:
